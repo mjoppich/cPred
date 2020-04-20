@@ -126,3 +126,19 @@ and you will receive 1 prediction per cluster. In a real life scenario you might
 
 The output format is as follow:
     cluster -> cell_type -> score -> accepted_marker_genes -> marker_genes_of_celltype
+
+## Method
+
+This prediction tools makes use of the marker genes provided by PanglaoDB [1]. Together with the reported sensitivity and specificity reported by them as well, the provided marker genes per cell-type and tissue are important. The script will download this marker table automatically.
+
+In their original publication [1] Franzén et al. propose a weight sum for determining the cell type in scRNAseq experiments, however do not provide an implementation that could be executed on the data directly.
+
+Here a slightly modified version of the score is implemented.
+The weighted sum is calculated for all upregulated cluster genes, which are also marker genes.
+
+Score for cluster k to be cell-type j and |N| cluster marker genes:
+
+**<span class="math">$$ \sum_{i=0}^{N} logFC_{i,k} \cdot sens_{i,k} \cdot (1-spec_{i,k}) \cdit imp_{i,j}$$</span>**
+
+
+[1] O. Franzén, L.-M. Gan, and J. L. M. Björkegren, “PanglaoDB: a web server for exploration of mouse and human single-cell RNA sequencing data,” Database, vol. 2019, Jan. 2019.

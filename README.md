@@ -140,4 +140,6 @@ Score for cluster k to be cell-type j and |N| cluster marker genes:
 
 ![formula](http://latex.codecogs.com/png.latex?%5Csum_%7Bi%3D0%7D%5E%7BN%7D%20lFC_%7Bi%2Ck%7D%20%5Ccdot%20sens_%7Bi%2Ck%7D%20%5Ccdot%20%281-spec_%7Bi%2Ck%7D%29%20%5Ccdot%20imp_%7Bi%2Cj%7D)
 
+which is then normalized by the fraction of cluster genes with logFC > 0 and the number of marker genes cell-type j has.
+
 [1] O. Franzén, L.-M. Gan, and J. L. M. Björkegren, “PanglaoDB: a web server for exploration of mouse and human single-cell RNA sequencing data,” Database, vol. 2019, Jan. 2019.

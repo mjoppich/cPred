@@ -138,7 +138,6 @@ The weighted sum is calculated for all upregulated cluster genes, which are also
 
 Score for cluster k to be cell-type j and |N| cluster marker genes:
 
-**<span class="math">$$ \sum_{i=0}^{N} logFC_{i,k} \cdot sens_{i,k} \cdot (1-spec_{i,k}) \cdit imp_{i,j}$$</span>**
-
+![formula](http://latex.codecogs.com/png.latex?%5Csum_%7Bi%3D0%7D%5E%7BN%7D%20lFC_%7Bi%2Ck%7D%20%5Ccdot%20sens_%7Bi%2Ck%7D%20%5Ccdot%20%281-spec_%7Bi%2Ck%7D%29%20%5Ccdot%20imp_%7Bi%2Cj%7D)
 
 [1] O. Franzén, L.-M. Gan, and J. L. M. Björkegren, “PanglaoDB: a web server for exploration of mouse and human single-cell RNA sequencing data,” Database, vol. 2019, Jan. 2019.

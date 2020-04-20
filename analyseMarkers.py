@@ -85,7 +85,11 @@ if __name__ == '__main__':
 
     if args.update_panglao or not os.path.isfile("panglao.tsv"):
 
+        print("Did not find panglao file. Downloading it now", file=sys.stderr)
+
         import urllib.request
+        import lxml.html
+
         url = "https://panglaodb.se/markers.html?cell_type=%27all_cells%27"
         user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0'
         accept_header= "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
@@ -93,7 +97,6 @@ if __name__ == '__main__':
         response = urllib.request.urlopen(request)
         html = response.read()
         
-        import lxml
         htmldoc = lxml.html.fromstring(html)
         allLinks = [x.attrib.get("href", None) for x in htmldoc.xpath(".//small/a")]
 
@@ -101,20 +104,26 @@ if __name__ == '__main__':
 
         for link in allLinks:
             if link.startswith("markers/"):
+                filelink = "https://panglaodb.se/{}".format(link)
+                print("Downloading from: ", filelink, file=sys.stderr)
 
                 if link.endswith(".gz"):
-                    with urllib.request.urlopen("https://panglaodb.se/{}".format(link)) as dl_file:
+                    print("in compressed format", file=sys.stderr)
+
+                    with urllib.request.urlopen(filelink) as dl_file:
                         with gzip.open(dl_file, 'rb') as fin:
                             with open("panglao.tsv", 'wb') as outfile:
                                 outfile.write(fin.read())
 
                 else:
-
-                    with urllib.request.urlopen("https://panglaodb.se/{}".format(link)) as dl_file:
+                    print("in uncompressed format", file=sys.stderr)
+                    with urllib.request.urlopen(filelink) as dl_file:
                         with open("panglao.tsv", 'wb') as out_file:
                             out_file.write(dl_file.read())
 
             break
+
+    print("Starting analysis", file=sys.stderr)
 
     with open("panglao.tsv") as fin:
 

@@ -10,49 +10,49 @@ If you find this worked for you, please drop a line :)
 
 Download the analyseMarkers.py script and run it on your output files.
 
-Best workflow: from within R/Seurat run the following script to generate a dataframe containing all relevant data (code not yet tested ...):
+If you have a list with marker genes for each cluster (`list(clusterID0=..., clusterID1=...)`) then the best workflow to get expression values and a compatible data frame is: from within R/Seurat run the following script to generate a dataframe containing both marker gene values and expression data (code not yet tested ...):
 
-    getExprData = function(markerObj, markerCells, sampleSuffix)
+    getExprData = function(markerObj, markerCells)
     {
     expTable = GetAssayData(object = subset(x=markerObj, cells=markerCells), slot = "data")
+    
+    outvalues1 = t(apply(expTable, 1, function(x) {
+        a=x[x > 0];
+        #a=x;
+        out = {}
         
-        outvalues1 = t(apply(expTable, 1, function(x) {
-                a=x[x > 0];
-                #a=x;
-                out = {}
+        out["anum"] = length(x)
+        out["num"] = length(a)
         
-                out["anum"] = length(x)
-                out["num"] = length(a)
+        f = fivenum(a)
+        out["min"] = f[1]
+        out["lower_hinge"] = f[2]
+        out["median"] = f[3]
+        out["upper_hinge"] = f[4]
+        out["max"] = f[5]
+        out["mean"] = mean(a)
         
-                f = fivenum(a)
-                out["min"] = f[1]
-                out["lower_hinge"] = f[2]
-                out["median"] = f[3]
-                out["upper_hinge"] = f[4]
-                out["max"] = f[5]
-                out["mean"] = mean(a)
-        
-                out
-            }))
-        outvalues1 = cbind(rownames(outvalues1), outvalues1)
-        cnames[1] = "gene"
-        colnames(outvalues1) = cnames
-        
-        return(outvalues1)
+        out
+    }))
+    outvalues1 = cbind(rownames(outvalues1), outvalues1)
+    cnames = colnames(outvalues1)
+    cnames[1] = "gene"
+    colnames(outvalues1) = cnames
+    
+    return(outvalues1)
     }
 
-    printDEDataExpression = function ( scdata, assay="SCT" )
+    getDEXpressionDF = function ( scdata, markers, assay="SCT" )
     {
-
-        outDF = NULL
     
+    outDF = NULL
     DefaultAssay(object=scdata) = assay  
     clusterIDs = as.character(sort(unique(Idents(scdata))))
-                        
+    
     scCells = Idents(scdata)
     scCells = names(scCells)
     scCells = unlist(as.character(scCells))
-
+    
     for (clusterID in clusterIDs){
         
         print(clusterID)
@@ -60,26 +60,44 @@ Best workflow: from within R/Seurat run the following script to generate a dataf
         cellIdents = Idents(scdata)
         cellIdents.c = names(cellIdents[cellIdents == clusterID])
         cellIdents.c = unlist(lapply(cellIdents.c, as.character))    
-
-        outvalues = getExprData(markerObj1, marker1Cells, suffix1)
-        outvalues = cbind(clusterID, outvalues)
-
-        if (outDF == NULL)
+        
+        expvals = getExprData(scdata, cellIdents.c)
+        
+        
+        markerdf = as.data.frame(markers[[clusterID]])
+        
+        if ((nrow(markerdf) > 0) && (nrow(expvals) > 0))
         {
-            outDF = outvalues
-        } else {
-            outDF = c(outDF, outvalues)
+        expvals = merge(markerdf, expvals, all.x=T, by.x="gene", by.y = "gene")  
         }
-
+        
+        expvals = as.data.frame(cbind(clusterID, expvals))
+        
+        if (!is.data.frame(outDF) || nrow(outDF)==0)
+        {
+        outDF = expvals
+        } else {
+        outDF = as.data.frame(rbind(outDF, expvals))
+        }
+        
     }
-
+    
     return(outDF)
     
     }
 
+    exprdf = getDEXpressionDF(hybridLib.o, mastAdd.o$hybridDEResults)
+    write.table(exprdf, "expr_test.tsv", sep="\t", row.names=F, quote = F)
+
+
+
 Then you can simply call
 
     python3 analyseMarkers.py --markers example/marker_genes_single_human_all.tsv --predictions 1
+    Did not find panglao file. Downloading it now
+    Downloading from:  https://panglaodb.se/markers/PanglaoDB_markers_27_Mar_2020.tsv.gz
+    in compressed format
+    Starting analysis
     0       Fibroblasts;Connective tissue   3.7979322878001667      62      179
     1       Smooth muscle cells;Smooth muscle       3.209013271632466       38      82
     2       Pancreatic stellate cells;Pancreas      2.2069340605035954      20      29

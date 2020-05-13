@@ -23,8 +23,13 @@ if __name__ == '__main__':
 
     parser.add_argument('-n', '--predictions', default=10, type=int, help="number of predictions per cluster shown")
 
+    parser.add_argument('-s', '--seurat', default=False, action="store_true", help="generate seurat output at the end?")
     
     args = parser.parse_args()
+
+    if args.seurat:
+        print("Setting number of predictions to 1", file=sys.stderr)
+        args.predictions = 1
 
 
 
@@ -82,6 +87,8 @@ if __name__ == '__main__':
 
     gene2refcluster = defaultdict(set)
     nickname2gene = {}
+
+    allFirstHits = []
 
     if args.update_panglao or not os.path.isfile("panglao.tsv"):
 
@@ -247,5 +254,20 @@ if __name__ == '__main__':
             clusterCounter[refcluster] = totalScore * (accGenes/len(clusterid2genes[refcluster])) # len(clusterid2genes[refcluster])
             cluster2accGenes[refcluster] = accGenes
 
-        for x in clusterCounter.most_common(args.predictions):
+        for idx, x in enumerate(clusterCounter.most_common(args.predictions)):
             print(cluster, ";".join(x[0]), x[1], cluster2accGenes[x[0]], len(clusterid2genes[x[0]]), sep="\t")
+
+            if idx == 0:
+                allFirstHits.append(";".join(x[0]))
+
+    if args.seurat:
+
+        outstr = "new.cluster.ids <- c({})".format(
+            ",".join(['"{}"'.format(x) for x in allFirstHits])
+        )
+
+        print(outstr)
+        print("orignames = Idents(seurat_obj)")
+        print("names(new.cluster.ids) <- levels(orignames)")
+        print("levels(orignames) = new.cluster.ids")
+        print("seurat_obj$cellnames = orignames")

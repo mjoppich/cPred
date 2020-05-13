@@ -62,9 +62,11 @@ If you have a list with marker genes for each cluster (`list(clusterID0=..., clu
         cellIdents.c = unlist(lapply(cellIdents.c, as.character))    
         
         expvals = getExprData(scdata, cellIdents.c)
+
+        modmarkers = markers[[clusterID]]
+        modmarkers$gene = rownames(modmarkers)
         
-        
-        markerdf = as.data.frame(markers[[clusterID]])
+        markerdf = as.data.frame(modmarkers)
         
         if ((nrow(markerdf) > 0) && (nrow(expvals) > 0))
         {
@@ -86,7 +88,36 @@ If you have a list with marker genes for each cluster (`list(clusterID0=..., clu
     
     }
 
-    exprdf = getDEXpressionDF(hybridLib.o, mastAdd.o$hybridDEResults)
+    makeDEResults = function(inobj, assay="SCT", test="wilcox")
+    {
+    clusterIDs = as.character(sort(unique(Idents(inobj))))
+
+    retList = list()
+
+    for (clusterID in clusterIDs)
+    {
+
+
+        cellIdents = Idents(inobj)
+        cellIdents.c = names(cellIdents[cellIdents == clusterID])
+        cellIdents.c = unlist(lapply(cellIdents.c, as.character))
+
+        print(paste("Processing cluster", clusterID, "with a total of", length(cellIdents.c), "cells"))
+
+        deMarkers = FindMarkers(inobj, assay=assay, ident.1 = cellIdents.c, test.use=test)
+
+
+        retList[[clusterID]] = deMarkers
+
+    }
+
+    return(retList)
+
+    }
+
+
+    deRes = makeDEResults(seurat_obj, assay="RNA", test="MAST")
+    exprdf = getDEXpressionDF(seurat_obj, deRes, assay="RNA")
     write.table(exprdf, "expr_test.tsv", sep="\t", row.names=F, quote = F)
 
 
@@ -126,6 +157,23 @@ and you will receive 1 prediction per cluster. In a real life scenario you might
 
 The output format is as follow:
     cluster -> cell_type -> score -> accepted_marker_genes -> marker_genes_of_celltype
+
+
+### Renaming clusters in Seurat
+
+With the `--seurat` flag, this tool will generate string that can easily be pasted into your R session:
+
+    new.cluster.ids <- c("Fibroblasts;Connective tissue", "Smooth muscle cells;Smooth muscle", "Fibroblasts;Connective tissue", "Macrophages;Immune system", "Smooth muscle cells;Smooth muscle", "Endothelial cells;Vasculature", "Fibroblasts;Connective tissue", "T memory cells;Immune system", "Fibroblasts;Connective tissue", "Fibroblasts;Connective tissue", "Pericytes;Vasculature", "Smooth muscle cells;Smooth muscle", "B cells;Immune system", "Plasma cells;Immune system", "Macrophages;Immune system", "Macrophages;Immune system", "Fibroblasts;Connective tissue", "Endothelial cells;Vasculature", "Endothelial cells;Vasculature", "Schwann cells;Brain", "Fibroblasts;Connective tissue", "Gamma delta T cells;Immune system", "Mesothelial cells;Epithelium", "Mast cells;Immune system")
+
+    orignames = Idents(seurat_obj)
+    names(new.cluster.ids) <- levels(orignames)
+    levels(orignames) = new.cluster.ids
+
+    seurat_obj$cellnames = orignames
+
+You can visualize the assigned cell types in a UMAP plot with
+
+    DimPlot(obj.integrated, group.by="cellnames", reduction = "umap", label=T)
 
 ## Method
 

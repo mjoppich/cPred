@@ -1,3 +1,6 @@
+[![DOI](https://zenodo.org/badge/257298322.svg)](https://zenodo.org/badge/latestdoi/257298322)
+
+
 # scrnaseq_celltype_prediction
 
 Predict the cell-type of a cluster from Seurat FindMarker data

@@ -182,12 +182,31 @@ This prediction tools makes use of the marker genes provided by PanglaoDB [1]. T
 In their original publication [1] Franzén et al. propose a weight sum for determining the cell type in scRNAseq experiments, however do not provide an implementation that could be executed on the data directly.
 
 Here a slightly modified version of the score is implemented.
-The weighted sum is calculated for all upregulated cluster genes, which are also marker genes.
 
-Score for cluster k to be cell-type j and |N| cluster marker genes:
+The prediction of the cell type for a specfic cluster is achieved using a weighted sum.
+For each cell type $j$, and for each expressed gene *g* in a cluster *k**, which also happens to be a marker gene (it will be named *accepted* gene), a gene score 
 
-![formula](http://latex.codecogs.com/png.latex?%5Csum_%7Bi%3D0%7D%5E%7BN%7D%20lFC_%7Bi%2Ck%7D%20%5Ccdot%20sens_%7Bi%2Ck%7D%20%5Ccdot%20%281-spec_%7Bi%2Ck%7D%29%20%5Ccdot%20imp_%7Bi%2Cj%7D)
+![formula](https://latex.codecogs.com/png.latex?%5Ctext%7BGS%7D_%7Bj%2Ck%2Cg%7D%20%3D%20%5Ctext%7BmeanSens%7D_%7Bj%2Cg%7D%20%5Ccdot%20%5Ctext%7BavgExpr%7D_%7Bg%2Ck%7D%20%5Ccdot%20%5Ctext%7BprevInCluster%7D_%7Bk%2Cg%7D%5Ccdot%20%5Ctext%7BimpRC%7D_%7Bg%7D%20%5Ccdot%20%281-%5Ctext%7BmeanSpec%7D_%7Bj%2Cg%7D%29)
 
-which is then normalized by the fraction of cluster genes with logFC > 0 and the number of marker genes cell-type j has.
+
+is calculated.
+Here *meanSens* refers to the sensitivity with which the gene is expressed in the cell type, likewise *meanSpec* refers to the associated specificity.
+Contributing to this score is also the prevalence of the gene in the cluster, *prevInCluster* - a measure that is deducted from the cluster annotation, namely the number of cells which express the gene and the total cells in the cluster.
+The average expression *avgExpr* relates to the mean expression of the specific gene in the cluster.
+
+This gene score is summed up for each accepted gene of a cluster such that the totalScore 
+
+![formula](https://latex.codecogs.com/png.latex?%5Ctext%7BtotalScore%7D_%7Bj%2Ck%7D%20%3D%20%5Csum_%7Bg%20%5Cin%20MG_k%7D%20%5Ctext%7BGS%7D_%7Bj%2Ck%2Cg%7D)
+
+for all significant marker genes *MG_k* of cluster *k*.
+
+The final cluster score is then
+
+
+![formula](https://latex.codecogs.com/png.latex?%5Ctext%7BclusterScore%7D_%7Bj%2Ck%7D%20%3D%20%5Ctext%7BtotalScore%7D_%7Bj%2Ck%7D%20%5Ccdot%20%5Cfrac%7B%5Ctext%7BaccUnique%7D_%7Bj%2Ck%7D%7D%7B%5Ctext%7BallUnique%7D_%7Bj%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Ctext%7BaccGenes%7D_%7Bj%2Ck%7D%7D%7B%5Ctext%7BallGenes%7D_%7Bj%7D%7D)
+
+where accUniquerefers to the in cluster *k* accepted unique genes for cell type *j*, and allUnique to all unique genes of that specific cell type.
+Likewise accGenes is the number of accepted genes in cluster *k* for cell type *j*, and allGenes the number of all marker genes for cell type $j$.
+
 
 [1] O. Franzén, L.-M. Gan, and J. L. M. Björkegren, “PanglaoDB: a web server for exploration of mouse and human single-cell RNA sequencing data,” Database, vol. 2019, Jan. 2019.

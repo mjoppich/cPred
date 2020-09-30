@@ -34,11 +34,14 @@ if __name__ == '__main__':
 
 
     parser.add_argument('-s', '--seurat', default=False, action="store_true", help="generate seurat output at the end?")
+    parser.add_argument('-a', '--aorta3d', default=False, action="store_true", help="generate seurat output at the end?")
     parser.add_argument('-o', '--organs', default=[], type=str, nargs='+', help="generate seurat output at the end?")
+
+    parser.add_argument('--output', type=argparse.FileType('w'), default=sys.stdout, help="write to output file")
     
     args = parser.parse_args()
 
-    if args.seurat:
+    if args.seurat or args.aorta3d:
         print("Setting number of predictions to 1", file=sys.stderr)
         args.predictions = 1
 
@@ -127,7 +130,7 @@ if __name__ == '__main__':
 
     if args.update_cellmarkerdb or not os.path.isfile("cellmarkerdb.tsv"):
 
-        print("Updating CellMarker DB")        
+        print("Updating CellMarker DB", file=sys.stderr)        
 
         url = "http://biocc.hrbmu.edu.cn/CellMarker/download/all_cell_markers.txt"
         with urllib.request.urlopen(url) as dl_file:
@@ -255,7 +258,7 @@ if __name__ == '__main__':
 
 
     elif args.cellmarkerdb:
-        print("Loading cellmarkerdb")
+        print("Loading cellmarkerdb", file=sys.stderr)
 
         clusterid2genes = defaultdict(lambda: dict())
 
@@ -304,8 +307,6 @@ if __name__ == '__main__':
 
                     gene2tisCt[gene].add(tisCt)
                     tisCt2genes[tisCt].add(gene)
-
-        print(tisCt2genes[('Proximal tubular cell', 'Kidney')])
 
         with open("cellmarkerdb.tsv") as fin:
 
@@ -497,7 +498,8 @@ if __name__ == '__main__':
                             accGenesUniqueForCelltype += 1
                             ctUniqueGenes.add(g)
 
-                print(cluster, ";".join(x[0]), x[1], cluster2accGenes[x[0]], len(clusterid2genes[x[0]]), accGenesUniqueForCelltype, genesUniqueForCelltype, ctUniqueGenes, cluster2setAccGenes[x[0]], sep="\t")
+                print(cluster, ";".join(x[0]), x[1], cluster2accGenes[x[0]], len(clusterid2genes[x[0]]),
+                accGenesUniqueForCelltype, genesUniqueForCelltype, ctUniqueGenes, cluster2setAccGenes[x[0]], sep="\t", file=args.output)
                 if accOutput == 0:
                     allFirstHits.append(";".join(x[0]))
                 accOutput += 1

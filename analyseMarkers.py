@@ -133,48 +133,55 @@ if __name__ == '__main__':
         print("Updating CellMarker DB", file=sys.stderr)        
 
         url = "http://biocc.hrbmu.edu.cn/CellMarker/download/all_cell_markers.txt"
-        with urllib.request.urlopen(url) as dl_file:
-            with open("cellmarkerdb.tsv", 'wb') as outfile:
-                outfile.write(dl_file.read())
+
+        try:
+            with urllib.request.urlopen(url) as dl_file:
+                with open("cellmarkerdb.tsv", 'wb') as outfile:
+                    outfile.write(dl_file.read())
+        except:
+            print("Unable to download cellmarerdb", file=sys.stderr)
 
     if args.update_panglao or not os.path.isfile("panglao.tsv"):
 
         print("Did not find panglao file. Downloading it now", file=sys.stderr)
 
+        try:
 
+            url = "https://panglaodb.se/markers.html?cell_type=%27all_cells%27"
+            user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0'
+            accept_header= "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+            request = urllib.request.Request(url,headers={'User-Agent': user_agent, 'accept': accept_header})
+            response = urllib.request.urlopen(request)
+            html = response.read()
+            
+            htmldoc = lxml.html.fromstring(html)
+            allLinks = [x.attrib.get("href", None) for x in htmldoc.xpath(".//small/a")]
 
-        url = "https://panglaodb.se/markers.html?cell_type=%27all_cells%27"
-        user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0'
-        accept_header= "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-        request = urllib.request.Request(url,headers={'User-Agent': user_agent, 'accept': accept_header})
-        response = urllib.request.urlopen(request)
-        html = response.read()
-        
-        htmldoc = lxml.html.fromstring(html)
-        allLinks = [x.attrib.get("href", None) for x in htmldoc.xpath(".//small/a")]
+            allLinks = [x for x in allLinks if not x == None]
 
-        allLinks = [x for x in allLinks if not x == None]
+            for link in allLinks:
+                if link.startswith("markers/"):
+                    filelink = "https://panglaodb.se/{}".format(link)
+                    print("Downloading from: ", filelink, file=sys.stderr)
 
-        for link in allLinks:
-            if link.startswith("markers/"):
-                filelink = "https://panglaodb.se/{}".format(link)
-                print("Downloading from: ", filelink, file=sys.stderr)
+                    if link.endswith(".gz"):
+                        print("in compressed format", file=sys.stderr)
 
-                if link.endswith(".gz"):
-                    print("in compressed format", file=sys.stderr)
+                        with urllib.request.urlopen(filelink) as dl_file:
+                            with gzip.open(dl_file, 'rb') as fin:
+                                with open("panglao.tsv", 'wb') as outfile:
+                                    outfile.write(fin.read())
 
-                    with urllib.request.urlopen(filelink) as dl_file:
-                        with gzip.open(dl_file, 'rb') as fin:
-                            with open("panglao.tsv", 'wb') as outfile:
-                                outfile.write(fin.read())
+                    else:
+                        print("in uncompressed format", file=sys.stderr)
+                        with urllib.request.urlopen(filelink) as dl_file:
+                            with open("panglao.tsv", 'wb') as out_file:
+                                out_file.write(dl_file.read())
 
-                else:
-                    print("in uncompressed format", file=sys.stderr)
-                    with urllib.request.urlopen(filelink) as dl_file:
-                        with open("panglao.tsv", 'wb') as out_file:
-                            out_file.write(dl_file.read())
+                break
 
-            break
+        except:
+            print("Unable to download panglao", file=sys.stderr)
 
     print("Starting analysis", file=sys.stderr)
 

@@ -15,34 +15,49 @@ Download the analyseMarkers.py script and run it on your output files.
 
 If you have a list with marker genes for each cluster (`list(clusterID0=..., clusterID1=...)`) then the best workflow to get expression values and a compatible data frame is: from within R/Seurat run the following script to generate a dataframe containing both marker gene values and expression data (code not yet tested ...):
 
-    getExprData = function(markerObj, markerCells)
+    makesummary = function(a, suffix)
     {
-    expTable = GetAssayData(object = subset(x=markerObj, cells=markerCells), slot = "data")
-    
-    outvalues1 = t(apply(expTable, 1, function(x) {
-        a=x[x > 0];
-        #a=x;
-        out = {}
-        
-        out["anum"] = length(x)
-        out["num"] = length(a)
-        
+      out = {}
+      out["num"] = length(a)
+
+      if (length(a) == 0)
+      {
+        f = c(0,0,0,0,0)
+        meanA = 0
+      } else {
         f = fivenum(a)
-        out["min"] = f[1]
-        out["lower_hinge"] = f[2]
-        out["median"] = f[3]
-        out["upper_hinge"] = f[4]
-        out["max"] = f[5]
-        out["mean"] = mean(a)
-        
-        out
-    }))
-    outvalues1 = cbind(rownames(outvalues1), outvalues1)
-    cnames = colnames(outvalues1)
-    cnames[1] = "gene"
-    colnames(outvalues1) = cnames
-    
-    return(outvalues1)
+        meanA = mean(a)
+      }
+
+      out["min"] = f[1]
+      out["lower_hinge"] = f[2]
+      out["median"] = f[3]
+      out["upper_hinge"] = f[4]
+      out["max"] = f[5]
+      out["mean"] = meanA
+
+      names(out) = paste(names(out), suffix, sep=".")
+
+      return(out)
+    }
+
+    getExprData = function(markerObj, markerCells, sampleSuffix, slot="data")
+    {
+      expTable = GetAssayData(object = subset(x=markerObj, cells=markerCells), slot = slot)
+      allgenes = rownames(expTable)
+      cellnames = colnames(expTable)
+
+      expt.r = as(expTable, "dgTMatrix")
+      expt.df = data.frame(r = expt.r@i + 1, c = expt.r@j + 1, x = expt.r@x)
+
+      DT <- data.table(expt.df)
+      res = DT[, as.list(makesummary(x, sampleSuffix)), by = r]
+      res[[paste("anum", sampleSuffix, sep=".")]] = length(cellnames)
+      res$gene = allgenes[res$r]
+
+      res = res[,r:=NULL]
+
+      return(res)
     }
 
     getDEXpressionDF = function ( scdata, markers, assay="SCT" )

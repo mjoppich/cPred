@@ -34,6 +34,8 @@ if __name__ == '__main__':
 
 
     parser.add_argument('-s', '--seurat', default=False, action="store_true", help="generate seurat output at the end?")
+    parser.add_argument('-sc', '--scanpy', default=False, action="store_true", help="generate scanpy output at the end?")
+    
     parser.add_argument('-a', '--aorta3d', default=False, action="store_true", help="generate seurat output at the end?")
     parser.add_argument('-o', '--organs', default=[], type=str, nargs='+', help="generate seurat output at the end?")
 
@@ -126,7 +128,7 @@ if __name__ == '__main__':
 
 
 
-    allFirstHits = []
+    allFirstHits = {}
 
     if args.update_cellmarkerdb or not os.path.isfile("cellmarkerdb.tsv"):
 
@@ -508,14 +510,14 @@ if __name__ == '__main__':
                 print(cluster, ";".join(x[0]), x[1], cluster2accGenes[x[0]], len(clusterid2genes[x[0]]),
                 accGenesUniqueForCelltype, genesUniqueForCelltype, ctUniqueGenes, cluster2setAccGenes[x[0]], sep="\t", file=args.output)
                 if accOutput == 0:
-                    allFirstHits.append(";".join(x[0]))
+                    allFirstHits[cluster] = ";".join(x[0])
                 accOutput += 1
 
 
     if args.seurat:
 
         outstr = "new.cluster.ids <- c({})".format(
-            ",".join(['"{}"'.format(x) for x in allFirstHits])
+            ",".join(['"{}"'.format(allFirstHits[x]) for x in allFirstHits])
         )
 
         print(outstr)
@@ -523,3 +525,24 @@ if __name__ == '__main__':
         print("names(new.cluster.ids) <- levels(orignames)")
         print("levels(orignames) = new.cluster.ids")
         print("seurat_obj$cellnames = orignames")
+        
+    elif args.scanpy:
+        
+        outstr = "group2cellname <- dict({})".format(
+            ",".join(['"{}" = "{}"'.format(x, allFirstHits[x]) for x in allFirstHits])
+        )
+
+        print(outstr)
+        
+        scanpycode = """
+{o2ndict}  
+  
+adata.obs['new_clusters'] = (
+    adata.obs['leiden_0.6']
+    .map(group2cellname)
+    .astype('category')
+)
+        """.format(o2ndict=outstr)
+
+        print(scanpycode)
+        

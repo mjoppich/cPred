@@ -265,8 +265,8 @@ The output data frame (`expr_ttest.tsv`) then serves as input for cPred:
 ### Renaming clusters in scanpy
 
 With the `--scanpy` flag, this tool will generate string that can easily be pasted into your R session:
-
-    group2cellname = {"0": "Monocytes;Immune system","1": "Dendritic cells;Immune system","2": "NK cells;Immune system","3": "Macrophages;Immune system","4": "Dendritic cells;Immune system","5": "Macrophages;Immune system","6": "Macrophages;Immune system","7": "Mast cells;Immune system","8": "NK cells;Immune system","9": "Hepatocytes;Liver","10": "Hepatocytes;Liver","11": "Dendritic cells;Immune system","12": "Monocytes;Immune system","13": "Plasma cells;Immune system","14": "NK cells;Immune system","15": "Plasma cells;Immune system","16": "Acinar cells;Pancreas","17": "Plasma cells;Immune system","18": "B cells;Immune system","19": "Gamma delta T cells;Immune system","20": "B cells;Immune system","21": "Macrophages;Immune system","22": "Luminal epithelial cells;Mammary gland","23": "Plasma cells;Immune system","24": "Macrophages;Immune system","25": "T cells;Immune system","26": "Luminal epithelial cells;Mammary gland"} 
+   
+    group2cellname = {"0": "Monocytes;Immune system","1": "Dendritic cells;Immune system","2": "NK cells;Immune system","3": "Macrophages;Immune system","4": "Dendritic cells;Immune system","5": "Macrophages;Immune system","6": "Macrophages;Immune system","7": "Mast cells;Immune system","8": "NK cells;Immune system","9": "Mast cells;Immune system","10": "Mast cells;Immune system","11": "Dendritic cells;Immune system","12": "Monocytes;Immune system","13": "Plasma cells;Immune system","14": "NK cells;Immune system","15": "Plasma cells;Immune system","16": "Airway goblet cells;Lungs","17": "Plasma cells;Immune system","18": "B cells;Immune system","19": "Gamma delta T cells;Immune system","20": "B cells;Immune system","21": "Macrophages;Immune system","22": "Gamma delta T cells;Immune system","23": "Plasma cells;Immune system","24": "Macrophages;Immune system","25": "T cells;Immune system","26": "Plasma cells;Immune system" }
 
     adata.obs['new_clusters'] = (
         adata.obs['leiden_0.6']
@@ -276,8 +276,7 @@ With the `--scanpy` flag, this tool will generate string that can easily be past
 
 You can visualize the assigned cell types in a UMAP plot with
 
-    sc.pl.umap(adata, color=["new_clusters"])
-    plt.savefig("umap_cpred.png")
+    sc.pl.umap(adata, save="_cpred.png", color=["new_clusters"])
 
 
 ## cPred Method

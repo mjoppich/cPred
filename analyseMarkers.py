@@ -528,8 +528,8 @@ if __name__ == '__main__':
         
     elif args.scanpy:
         
-        outstr = "group2cellname <- dict({})".format(
-            ",".join(['"{}" = "{}"'.format(x, allFirstHits[x]) for x in allFirstHits])
+        outstr = "group2cellname <- {{{}}}".format(
+            ",".join(['"{}": "{}"'.format(x, allFirstHits[x]) for x in allFirstHits])
         )
 
         print(outstr)

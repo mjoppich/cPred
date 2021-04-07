@@ -224,34 +224,24 @@ First you have to prepare a data frame containing the marker genes (`ttest_df`) 
     
 These two data frame then need to be merged.
 
-    def merge_expressions(fsgrouped, markerDF):
-
+    def merge_expressions(fsgrouped, markerDF, idCol):
         fsgrouped = fsgrouped.copy()
         markerDF = markerDF.copy()
-
-        fsmelt = pd.melt(fsgrouped.reset_index(), id_vars=['leiden_0.6'])
-        fsmelt2 = fsmelt.pivot_table(index=['leiden_0.6', 'variable_0'], columns='variable_1')
+        fsmelt = pd.melt(fsgrouped.reset_index(), id_vars=[idCol])
+        fsmelt2 = fsmelt.pivot_table(index=[idCol, 'variable_0'], columns='variable_1')
         fsmelt3 = fsmelt2.reset_index()
-
         lev0Names = fsmelt3.columns.get_level_values(0)
         lev1Names = fsmelt3.columns.get_level_values(1)
-
         newnames = [lev1Names[i] if lev1Names[i] != '' else lev0Names[i] for i in range(0, len(lev0Names))]
-
         for i in range(0, len(newnames)):
             if newnames[i] == "variable_0":
                 newnames[i] = "gene"
-
             elif newnames[i].startswith(("leiden", "louvain")):
                 newnames[i] = "group"
-
         fsmelt4 = fsmelt3.droplevel(0, axis=1)
         fsmelt4.columns = newnames
-
         markerDF["gene"] = markerDF["names"]
         del markerDF["names"]
-
-
         return pd.merge(markerDF, fsmelt4, on=["group", "gene"])
 
     outdf = merge_expressions(fsgrouped, ttest_df)

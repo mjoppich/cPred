@@ -528,7 +528,7 @@ if __name__ == '__main__':
         
     elif args.scanpy:
         
-        outstr = "group2cellname <- {{{}}}".format(
+        outstr = "group2cellname = {{{}}}".format(
             ",".join(['"{}": "{}"'.format(x, allFirstHits[x]) for x in allFirstHits])
         )
 
@@ -536,9 +536,9 @@ if __name__ == '__main__':
         
         scanpycode = """
 {o2ndict}  
-  
+group_name = "leiden_2.0"  
 adata.obs['new_clusters'] = (
-    adata.obs['leiden_0.6']
+    adata.obs[group_name]
     .map(group2cellname)
     .astype('category')
 )

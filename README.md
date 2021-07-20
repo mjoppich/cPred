@@ -131,7 +131,7 @@ If you have a list with marker genes for each cluster (`list(clusterID0=..., clu
 
     deRes = makeDEResults(seurat_obj, assay="RNA", test="MAST")
     exprdf = getDEXpressionDF(seurat_obj, deRes, assay="RNA")
-    write.table(exprdf, "expr_test.tsv", sep="\t", row.names=F, quote = F)
+    write.table(exprdf, "example/marker_genes_single_human_all.tsv", sep="\t", row.names=F, quote = F)
 
 
 

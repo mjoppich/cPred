@@ -138,6 +138,9 @@ If you have a list with marker genes for each cluster (`list(clusterID0=..., clu
 Then you can simply call
 
     python3 analyseMarkers.py --markers example/marker_genes_single_human_all.tsv --predictions 1
+    
+    
+    or for newer versions: python3 analyseMarkers.py --logfc avg_log2FC --expr-mean mean.cluster --expressing-cell-count num.cluster --cluster-cell-count anum.cluster --markers example/marker_genes_single_human_all.tsv --predictions 1
     Did not find panglao file. Downloading it now
     Downloading from:  https://panglaodb.se/markers/PanglaoDB_markers_27_Mar_2020.tsv.gz
     in compressed format

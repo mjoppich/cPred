@@ -36,13 +36,9 @@ if __name__ == '__main__':
 
 
     parser.add_argument('-s', '--seurat', default=False, action="store_true", help="generate seurat output at the end?")
-<<<<<<< HEAD
-    parser.add_argument('-a', '--aorta3d', default=None, type=str, help="generate seurat output at the end?")
-=======
     parser.add_argument('-sc', '--scanpy', default=False, action="store_true", help="generate scanpy output at the end?")
     
-    parser.add_argument('-a', '--aorta3d', default=False, action="store_true", help="generate seurat output at the end?")
->>>>>>> 645603ecdb1974d9973008320df18da8c1e1d733
+    parser.add_argument('-a', '--aorta3d', default=None, type=str, help="generate seurat output at the end?")
     parser.add_argument('-o', '--organs', default=[], type=str, nargs='+', help="generate seurat output at the end?")
 
     parser.add_argument('--output', type=argparse.FileType('w'), default=sys.stdout, help="write to output file")

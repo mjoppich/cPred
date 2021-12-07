@@ -6,6 +6,8 @@ import gzip
 from natsort import natsorted
 import urllib.request
 import lxml.html
+import pandas as pd
+import json
 
 if __name__ == '__main__':
 
@@ -34,7 +36,7 @@ if __name__ == '__main__':
 
 
     parser.add_argument('-s', '--seurat', default=False, action="store_true", help="generate seurat output at the end?")
-    parser.add_argument('-a', '--aorta3d', default=False, action="store_true", help="generate seurat output at the end?")
+    parser.add_argument('-a', '--aorta3d', default=None, type=str, help="generate seurat output at the end?")
     parser.add_argument('-o', '--organs', default=[], type=str, nargs='+', help="generate seurat output at the end?")
 
     parser.add_argument('--output', type=argparse.FileType('w'), default=sys.stdout, help="write to output file")
@@ -373,6 +375,7 @@ if __name__ == '__main__':
     print("known (celltype, organ)", len(clusterid2genes), file=sys.stderr)
 
 
+    clusterTopHits = defaultdict(list)
 
     for cluster in natsorted([x for x in cluster2genes]):
         clusterGenes = [x for x in cluster2genes[cluster]]
@@ -507,6 +510,10 @@ if __name__ == '__main__':
 
                 print(cluster, ";".join(x[0]), x[1], cluster2accGenes[x[0]], len(clusterid2genes[x[0]]),
                 accGenesUniqueForCelltype, genesUniqueForCelltype, ctUniqueGenes, cluster2setAccGenes[x[0]], sep="\t", file=args.output)
+                #0	Fibroblasts;Connective tissue	80.85211072115266	71	137	12	33	{'FBLN7', 'HAS1', 'FSTL1', 'MDK', 'PTX3', 'DPEP1', 'KLF2', 'KLF9', 'TNXB', 'ELN', 'COL14A1', 'GSN'}	{'CTGF'
+
+                clusterTopHits[cluster].append( (";".join(x[0]), x[1]) )
+
                 if accOutput == 0:
                     allFirstHits.append(";".join(x[0]))
                 accOutput += 1
@@ -523,3 +530,47 @@ if __name__ == '__main__':
         print("names(new.cluster.ids) <- levels(orignames)")
         print("levels(orignames) = new.cluster.ids")
         print("seurat_obj$cellnames = orignames")
+
+
+
+
+    if args.aorta3d:
+
+        infoFilePath = "{}.analysis.info".format(args.aorta3d)
+        baseFilePath = "{}.config.json".format(args.aorta3d)
+
+        baseJSON = {
+        "id": os.path.basename(args.aorta3d),
+        "type": "scrna",
+        "type_det": list(set([clusterTopHits[x][0][0] for x in clusterTopHits])),
+        "color": "#ff0000",
+        "info_path": infoFilePath,
+        }
+
+        
+        infoJSON = {
+            "region": "0",
+            "info":{}
+        }
+
+        
+        df = pd.read_csv(args.markers.name, sep="\t", header=0)
+
+        for cluster in clusterTopHits:
+            print("Processing cluster", cluster)
+
+            clusterOutname = "{}.{}.tsv".format(args.aorta3d, cluster)
+
+            subDF = df[ df[args.cluster].astype(str) == str(cluster)]
+            subDF.to_csv(clusterOutname, sep="\t")
+
+            infoJSON["info"][cluster] = {
+                "type_det": clusterTopHits[cluster][0][0],
+                "de_data": os.path.basename(clusterOutname)
+            }
+
+        with open(baseFilePath, "w") as fout:
+            json.dump([baseJSON], fout, indent=4)
+
+        with open(infoFilePath, "w") as fout:
+            json.dump([infoJSON], fout, indent=4)

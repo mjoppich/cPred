@@ -290,6 +290,8 @@ is calculated.
 Here *meanSens* refers to the sensitivity with which the gene is expressed in the cell type, likewise *meanSpec* refers to the associated specificity.
 Contributing to this score is also the prevalence of the gene in the cluster, *prevInCluster* - a measure that is deducted from the cluster annotation, namely the number of cells which express the gene and the total cells in the cluster.
 The average expression *avgExpr* relates to the mean expression of the specific gene in the cluster.
+The importance of the gene *impRC* in all reference clusters is defined as 
+![formula](https://latex.codecogs.com/gif.latex?%5Cfrac%7B1.0%7D%7B1&plus;log_2%28%5Cleft%20%7C%20%5Cleft%20%5C%7B%20j%20%5Cvert%20g%20%5Cin%20MG_j%20%5Cforall%20j%20%5Cright%20%5C%7D%20%5Cright%20%7C%29%7D).
 
 This gene score is summed up for each accepted gene of a cluster such that the totalScore 
 

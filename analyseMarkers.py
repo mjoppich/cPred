@@ -36,7 +36,13 @@ if __name__ == '__main__':
 
 
     parser.add_argument('-s', '--seurat', default=False, action="store_true", help="generate seurat output at the end?")
+<<<<<<< HEAD
     parser.add_argument('-a', '--aorta3d', default=None, type=str, help="generate seurat output at the end?")
+=======
+    parser.add_argument('-sc', '--scanpy', default=False, action="store_true", help="generate scanpy output at the end?")
+    
+    parser.add_argument('-a', '--aorta3d', default=False, action="store_true", help="generate seurat output at the end?")
+>>>>>>> 645603ecdb1974d9973008320df18da8c1e1d733
     parser.add_argument('-o', '--organs', default=[], type=str, nargs='+', help="generate seurat output at the end?")
 
     parser.add_argument('--output', type=argparse.FileType('w'), default=sys.stdout, help="write to output file")
@@ -128,7 +134,7 @@ if __name__ == '__main__':
 
 
 
-    allFirstHits = []
+    allFirstHits = {}
 
     if args.update_cellmarkerdb or not os.path.isfile("cellmarkerdb.tsv"):
 
@@ -515,14 +521,14 @@ if __name__ == '__main__':
                 clusterTopHits[cluster].append( (";".join(x[0]), x[1]) )
 
                 if accOutput == 0:
-                    allFirstHits.append(";".join(x[0]))
+                    allFirstHits[cluster] = ";".join(x[0])
                 accOutput += 1
 
 
     if args.seurat:
 
         outstr = "new.cluster.ids <- c({})".format(
-            ",".join(['"{}"'.format(x) for x in allFirstHits])
+            ",".join(['"{}"'.format(allFirstHits[x]) for x in allFirstHits])
         )
 
         print(outstr)
@@ -530,7 +536,25 @@ if __name__ == '__main__':
         print("names(new.cluster.ids) <- levels(orignames)")
         print("levels(orignames) = new.cluster.ids")
         print("seurat_obj$cellnames = orignames")
+    elif args.scanpy:
+        
+        outstr = "group2cellname = {{{}}}".format(
+            ",".join(['"{}": "{}"'.format(x, allFirstHits[x]) for x in allFirstHits])
+        )
 
+        print(outstr)
+        
+        scanpycode = """
+{o2ndict}  
+group_name = "leiden_2.0"  
+adata.obs['new_clusters'] = (
+    adata.obs[group_name]
+    .map(group2cellname)
+    .astype('category')
+)
+        """.format(o2ndict=outstr)
+
+        print(scanpycode)
 
 
 
@@ -574,3 +598,4 @@ if __name__ == '__main__':
 
         with open(infoFilePath, "w") as fout:
             json.dump([infoJSON], fout, indent=4)
+        

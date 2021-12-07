@@ -1,48 +1,58 @@
-[![DOI](https://zenodo.org/badge/257298322.svg)](https://zenodo.org/badge/latestdoi/257298322)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4447014.svg)](https://doi.org/10.5281/zenodo.4447014)
 
+# cPred: cell type prediction from marker masses
 
-# scrnaseq_celltype_prediction
+Predicts the cell type of a cluster from expression values.
 
-Predict the cell-type of a cluster from Seurat FindMarker data
-
-This method has not been tested on large scale data, but might actually work.
-
-If you find this worked for you, please drop a line :)
-
-## Usage
+## Usage (Seurat)
 
 Download the analyseMarkers.py script and run it on your output files.
 
 If you have a list with marker genes for each cluster (`list(clusterID0=..., clusterID1=...)`) then the best workflow to get expression values and a compatible data frame is: from within R/Seurat run the following script to generate a dataframe containing both marker gene values and expression data (code not yet tested ...):
 
-    getExprData = function(markerObj, markerCells)
+    makesummary = function(a, suffix)
     {
-    expTable = GetAssayData(object = subset(x=markerObj, cells=markerCells), slot = "data")
-    
-    outvalues1 = t(apply(expTable, 1, function(x) {
-        a=x[x > 0];
-        #a=x;
-        out = {}
-        
-        out["anum"] = length(x)
-        out["num"] = length(a)
-        
+      out = {}
+      out["num"] = length(a)
+
+      if (length(a) == 0)
+      {
+        f = c(0,0,0,0,0)
+        meanA = 0
+      } else {
         f = fivenum(a)
-        out["min"] = f[1]
-        out["lower_hinge"] = f[2]
-        out["median"] = f[3]
-        out["upper_hinge"] = f[4]
-        out["max"] = f[5]
-        out["mean"] = mean(a)
-        
-        out
-    }))
-    outvalues1 = cbind(rownames(outvalues1), outvalues1)
-    cnames = colnames(outvalues1)
-    cnames[1] = "gene"
-    colnames(outvalues1) = cnames
-    
-    return(outvalues1)
+        meanA = mean(a)
+      }
+
+      out["min"] = f[1]
+      out["lower_hinge"] = f[2]
+      out["median"] = f[3]
+      out["upper_hinge"] = f[4]
+      out["max"] = f[5]
+      out["mean"] = meanA
+
+      names(out) = paste(names(out), suffix, sep=".")
+
+      return(out)
+    }
+
+    getExprData = function(markerObj, markerCells, sampleSuffix, slot="data")
+    {
+      expTable = GetAssayData(object = subset(x=markerObj, cells=markerCells), slot = slot)
+      allgenes = rownames(expTable)
+      cellnames = colnames(expTable)
+
+      expt.r = as(expTable, "dgTMatrix")
+      expt.df = data.frame(r = expt.r@i + 1, c = expt.r@j + 1, x = expt.r@x)
+
+      DT <- data.table(expt.df)
+      res = DT[, as.list(makesummary(x, sampleSuffix)), by = r]
+      res[[paste("anum", sampleSuffix, sep=".")]] = length(cellnames)
+      res$gene = allgenes[res$r]
+
+      res = res[,r:=NULL]
+
+      return(res)
     }
 
     getDEXpressionDF = function ( scdata, markers, assay="SCT" )
@@ -121,13 +131,16 @@ If you have a list with marker genes for each cluster (`list(clusterID0=..., clu
 
     deRes = makeDEResults(seurat_obj, assay="RNA", test="MAST")
     exprdf = getDEXpressionDF(seurat_obj, deRes, assay="RNA")
-    write.table(exprdf, "expr_test.tsv", sep="\t", row.names=F, quote = F)
+    write.table(exprdf, "example/marker_genes_single_human_all.tsv", sep="\t", row.names=F, quote = F)
 
 
 
 Then you can simply call
 
     python3 analyseMarkers.py --markers example/marker_genes_single_human_all.tsv --predictions 1
+    
+    
+    or for newer versions: python3 analyseMarkers.py --logfc avg_log2FC --expr-mean mean.cluster --expressing-cell-count num.cluster --cluster-cell-count anum.cluster --markers example/marker_genes_single_human_all.tsv --predictions 1
     Did not find panglao file. Downloading it now
     Downloading from:  https://panglaodb.se/markers/PanglaoDB_markers_27_Mar_2020.tsv.gz
     in compressed format
@@ -161,7 +174,6 @@ and you will receive 1 prediction per cluster. In a real life scenario you might
 The output format is as follow:
     cluster -> cell_type -> score -> accepted_marker_genes -> marker_genes_of_celltype
 
-
 ### Renaming clusters in Seurat
 
 With the `--seurat` flag, this tool will generate string that can easily be pasted into your R session:
@@ -178,9 +190,91 @@ You can visualize the assigned cell types in a UMAP plot with
 
     DimPlot(obj.integrated, group.by="cellnames", reduction = "umap", label=T)
 
-## Method
+## Usage (scanpy)
 
-This prediction tools makes use of the marker genes provided by PanglaoDB [1]. Together with the reported sensitivity and specificity reported by them as well, the provided marker genes per cell-type and tissue are important. The script will download this marker table automatically.
+First you have to prepare a data frame containing the marker genes (`ttest_df`) as well as a data frame containing expression statistics for all genes in the groups the marker genes were calculated for (`fsgrouped`). Particularly generating the last data frame may take a while, depending on the data set.
+
+    sc.tl.rank_genes_groups(adata, 'leiden_0.6', method='t-test', key_added = "t-test")
+    ttest_df = sc.get.rank_genes_groups_df(adata, group=None, key='t-test')
+
+    def percentile(n):
+        def percentile_(x):
+            return np.percentile(x, n)
+        percentile_.__name__ = 'percentile_%s' % n
+        return percentile_
+
+
+    def anum():
+        def anum_(x):
+            return (x > 0).sum()
+        anum_.__name__ = 'anum'
+        return anum_
+
+    def num():
+        def num_(x):
+            return x.size
+        num_.__name__ = 'num'
+        return num_
+
+    genedf = sc.get.obs_df(
+            adata,
+            keys=["leiden_0.6", *[x for x in sc.get.var_df(adata).index]]
+        )
+    grouped = genedf.groupby("leiden_0.6")
+    fsgrouped = grouped.agg(["min", percentile(25), np.median, percentile(75), "max", "mean", anum(), num()])
+
+    fsgrouped.to_csv("expression_mean_df.tsv", sep="\t")
+    
+These two data frame then need to be merged.
+
+    def merge_expressions(fsgrouped, markerDF, idCol):
+        fsgrouped = fsgrouped.copy()
+        markerDF = markerDF.copy()
+        fsmelt = pd.melt(fsgrouped.reset_index(), id_vars=[idCol])
+        fsmelt2 = fsmelt.pivot_table(index=[idCol, 'variable_0'], columns='variable_1')
+        fsmelt3 = fsmelt2.reset_index()
+        lev0Names = fsmelt3.columns.get_level_values(0)
+        lev1Names = fsmelt3.columns.get_level_values(1)
+        newnames = [lev1Names[i] if lev1Names[i] != '' else lev0Names[i] for i in range(0, len(lev0Names))]
+        for i in range(0, len(newnames)):
+            if newnames[i] == "variable_0":
+                newnames[i] = "gene"
+            elif newnames[i].startswith(("leiden", "louvain")):
+                newnames[i] = "group"
+        fsmelt4 = fsmelt3.droplevel(0, axis=1)
+        fsmelt4.columns = newnames
+        markerDF["gene"] = markerDF["names"]
+        del markerDF["names"]
+        return pd.merge(markerDF, fsmelt4, on=["group", "gene"])
+
+    outdf = merge_expressions(fsgrouped, ttest_df)
+    
+    outdf.to_csv("expr_ttest.tsv", sep="\t", index = False)
+    
+The output data frame (`expr_ttest.tsv`) then serves as input for cPred:
+
+    python3 analyseMarkers.py --markers expr_ttest.tsv --gene gene --cluster group --logfc logfoldchanges --pvaladj pvals_adj --expr-mean mean --scanpy
+    
+### Renaming clusters in scanpy
+
+With the `--scanpy` flag, this tool will generate string that can easily be pasted into your R session:
+   
+    group2cellname = {"0": "Monocytes;Immune system","1": "Dendritic cells;Immune system","2": "NK cells;Immune system","3": "Macrophages;Immune system","4": "Dendritic cells;Immune system","5": "Macrophages;Immune system","6": "Macrophages;Immune system","7": "Mast cells;Immune system","8": "NK cells;Immune system","9": "Mast cells;Immune system","10": "Mast cells;Immune system","11": "Dendritic cells;Immune system","12": "Monocytes;Immune system","13": "Plasma cells;Immune system","14": "NK cells;Immune system","15": "Plasma cells;Immune system","16": "Airway goblet cells;Lungs","17": "Plasma cells;Immune system","18": "B cells;Immune system","19": "Gamma delta T cells;Immune system","20": "B cells;Immune system","21": "Macrophages;Immune system","22": "Gamma delta T cells;Immune system","23": "Plasma cells;Immune system","24": "Macrophages;Immune system","25": "T cells;Immune system","26": "Plasma cells;Immune system" }
+
+    adata.obs['new_clusters'] = (
+        adata.obs['leiden_0.6']
+        .map(group2cellname)
+        .astype('category')
+    )
+
+You can visualize the assigned cell types in a UMAP plot with
+
+    sc.pl.umap(adata, save="_cpred.png", color=["new_clusters"])
+
+
+## cPred Method
+
+The cPred cell type prediction method makes use of the marker genes provided by PanglaoDB [1]. Together with the reported sensitivity and specificity reported by them as well, the provided marker genes per cell-type and tissue are important. The script will download this marker table automatically.
 
 In their original publication [1] Franzén et al. propose a weight sum for determining the cell type in scRNAseq experiments, however do not provide an implementation that could be executed on the data directly.
 

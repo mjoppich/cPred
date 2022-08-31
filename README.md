@@ -271,6 +271,11 @@ You can visualize the assigned cell types in a UMAP plot with
 
     sc.pl.umap(adata, save="_cpred.png", color=["new_clusters"])
 
+### Converting data to Aorta3D
+
+With the `--aorta3` flag, this tool will generate a hdf5 object for input to [Aorta3D](https://github.com/mjoppich/Aorta3D).
+
+python3 analyseMarkers.py --markers example/marker_genes_single_human_all.tsv --predictions 1 --aorta3d aorta3d/wirka
 
 ## cPred Method
 

@@ -7,7 +7,11 @@ from natsort import natsorted
 import urllib.request
 import lxml.html
 import pandas as pd
+import numpy as np
 import json
+import numpy as np
+import pandas as pd
+import h5py
 
 if __name__ == '__main__':
 
@@ -143,7 +147,7 @@ if __name__ == '__main__':
                 with open("cellmarkerdb.tsv", 'wb') as outfile:
                     outfile.write(dl_file.read())
         except:
-            print("Unable to download cellmarerdb", file=sys.stderr)
+            print("Unable to download CellMarkerDB", file=sys.stderr)
 
     if args.update_panglao or not os.path.isfile("panglao.tsv"):
 
@@ -555,43 +559,76 @@ adata.obs['new_clusters'] = (
 
 
     if args.aorta3d:
+        import gzip
+        import Bio.UniProt.GOA as GOA
+        from goatools.go_enrichment import GOEnrichmentStudy
+        from goatools import obo_parser
+        from goatools.gosubdag.gosubdag import GoSubDag
 
-        infoFilePath = "{}.analysis.info".format(args.aorta3d)
-        baseFilePath = "{}.config.json".format(args.aorta3d)
+        go_genes = "goa_mouse.gaf.gz"
 
-        baseJSON = {
-        "id": os.path.basename(args.aorta3d),
-        "type": "scrna",
-        "type_det": list(set([clusterTopHits[x][0][0] for x in clusterTopHits])),
-        "color": "#ff0000",
-        "info_path": infoFilePath,
-        }
+        # File is a gunzip file, so we need to open it in this way
+        with gzip.open(go_genes, 'rt') as gaf_fp:
+            mouse_funcs = {}  # Initialise the dictionary of functions
+            go2genes = defaultdict(set)
+            go2name = {}
+            # Iterate on each function using Bio.UniProt.GOA library.
+            for entry in GOA.gafiterator(gaf_fp):
+                genesym = entry.pop('DB_Object_Symbol')
+                go2genes[entry["GO_ID"]].add(genesym)
+        go = obo_parser.GODag("go-basic.obo")
+
 
         
-        infoJSON = {
-            "region": "0",
-            "info":{}
-        }
 
-        
+        h5Filename = "{}.h5".format(args.aorta3d)
+
+        #creates an empty HDF5 file
+        pdStore = pd.HDFStore(h5Filename, mode="w")
+
         df = pd.read_csv(args.markers.name, sep="\t", header=0)
 
         for cluster in clusterTopHits:
-            print("Processing cluster", cluster)
-
-            clusterOutname = "{}.{}.tsv".format(args.aorta3d, cluster)
-
             subDF = df[ df[args.cluster].astype(str) == str(cluster)]
-            subDF.to_csv(clusterOutname, sep="\t")
+            
+            for c in subDF.columns:
+                try:
+                    subDF.loc[:, c] = pd.to_numeric(subDF[c])
+                except:
+                    subDF.loc[:, c] = subDF[c].astype(str)
 
-            infoJSON["info"][cluster] = {
-                "type_det": clusterTopHits[cluster][0][0],
-                "de_data": os.path.basename(clusterOutname)
-            }
-
-        with open(baseFilePath, "w") as fout:
-            json.dump([baseJSON], fout, indent=4)
-
-        with open(infoFilePath, "w") as fout:
-            json.dump([infoJSON], fout, indent=4)
+            clusterPath = "clusters/cluster_{}".format(cluster)
+            subDF.to_hdf(pdStore, clusterPath, append=True)
         
+
+
+
+
+
+
+
+
+
+        # adding pandas dataframes finished, now we add attributes
+        pdStore.close()
+
+        # adding attributes
+        h5pyFile = h5py.File(h5Filename, mode="a")
+
+        h5pyFile.attrs["AORTA3D_id"] = os.path.basename(args.aorta3d)
+        h5pyFile.attrs["AORTA3D_type"] = "scrna"
+        h5pyFile.attrs["AORTA3D_type_det"] = list(set([clusterTopHits[x][0][0] for x in clusterTopHits]))
+        h5pyFile.attrs["AORTA3D_color"] = "#ff0000"
+
+        grpInfo = h5pyFile["/clusters"]
+
+        for cluster in clusterTopHits:
+            
+            clusterPath = "clusters/cluster_{}".format(cluster)    
+            cInfo = h5pyFile[clusterPath]
+            cInfo.attrs["AORTA3D_type_det"] = [ clusterTopHits[cluster][0][0] ]
+            cInfo.attrs["AORTA3D_cluster"] = cluster
+
+        h5pyFile.close()
+        
+

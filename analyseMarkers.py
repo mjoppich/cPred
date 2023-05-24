@@ -22,15 +22,19 @@ if __name__ == '__main__':
     parser.add_argument('-up', '--update-panglao', action='store_true', default=False, help='update panglao db file')
     parser.add_argument('-uc', '--update-cellmarkerdb', action='store_true', default=False, help='update panglao db file')
 
-    parser.add_argument('-g', '--gene', default="gene", type=str, help="column containing cluster id value")
+    parser.add_argument('-g', '--gene', default="gene", type=str, help="column containing gene name")
     parser.add_argument('-c', '--cluster', default="clusterID", type=str, help="column containing cluster id value")
 
-    parser.add_argument('-l', '--logfc', default="avg_logFC", type=str, help="column containing cluster id value")
-    parser.add_argument('-p', '--pvaladj', default="p_val_adj", type=str, help="column containing cluster id value")
-    parser.add_argument('-e', '--expr-mean', default="mean", type=str, help="column containing cluster id value")
+    parser.add_argument('-l', '--logfc', default="avg_logFC", type=str, help="column containing logFC value")
+    parser.add_argument('-p', '--pvaladj', default="p_val_adj", type=str, help="column containing adjusted pvalue value")
+    parser.add_argument('-pt', '--pvaladj-threshold', default=0.05, type=float, help="adj p-value threshold")
 
-    parser.add_argument('-ec', '--expressing-cell-count', default="num", type=str, help="column containing cluster id value")
-    parser.add_argument('-tc', '--cluster-cell-count', default="anum", type=str, help="column containing cluster id value")
+    
+    
+    parser.add_argument('-e', '--expr-mean', default="mean", type=str, help="column containing mean expression value")
+
+    parser.add_argument('-ec', '--expressing-cell-count', default="num", type=str, help="column containing number of expressing cells")
+    parser.add_argument('-tc', '--cluster-cell-count', default="anum", type=str, help="column containing number of cluster cells")
 
     parser.add_argument('-n', '--predictions', default=10, type=int, help="number of predictions per cluster shown")
     parser.add_argument('-f', '--mean-factor', default=1, type=float, help="number of predictions per cluster shown")
@@ -96,8 +100,8 @@ if __name__ == '__main__':
 
                 continue
 
-            if line[0].startswith(idx2elem[0]):
-                continue
+            #if line[0].startswith(idx2elem[0]):
+            #    continue
 
             if len(line) < len(idx2elem):
                 continue
@@ -119,9 +123,9 @@ if __name__ == '__main__':
                 if args.expressing_cell_count != None and args.cluster_cell_count != None:
                     expr_perc = float(line[elem2idx[args.expressing_cell_count]]) / float(line[elem2idx[args.cluster_cell_count]])
 
-                if robustPval > 0.05:
+                if robustPval > args.pvaladj_threshold:
                     continue
-
+                
                 measuredGenes.add(geneSym)
 
                 # expr_value, logFC, pVal, _, epxr_perc

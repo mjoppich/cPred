@@ -1,6 +1,6 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4447014.svg)](https://doi.org/10.5281/zenodo.4447014)
 
-# cPred: cell type prediction from marker masses
+# cPred: cell type prediction from marker genes/masses
 
 Predicts the cell type of a cluster from expression values.
 
